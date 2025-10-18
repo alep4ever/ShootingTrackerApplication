@@ -350,7 +350,8 @@ public class SkillView extends VerticalLayout {
 
         // Create HTML5 video element
         if (skill.getVideoFileName() != null) {
-            String videoUrl = "/videos/" + skill.getVideoFileName();
+            // Use the API endpoint which ensures proper MIME type handling
+            String videoUrl = "/api/videos/" + skill.getVideoFileName();
 
             Div videoContainer = new Div();
             videoContainer.getElement().setProperty("innerHTML",
