@@ -7,6 +7,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
@@ -59,6 +60,7 @@ public class MainLayout extends AppLayout {
         menuEntries.forEach(entry -> {
             if (entry.icon() != null) {
                 nav.addItem(new SideNavItem(entry.title(), entry.path(), new SvgIcon(entry.icon())));
+                nav.addItem(new SideNavItem("Basketball", "basketball", new SvgIcon(entry.icon())));
             } else {
                 nav.addItem(new SideNavItem(entry.title(), entry.path()));
             }

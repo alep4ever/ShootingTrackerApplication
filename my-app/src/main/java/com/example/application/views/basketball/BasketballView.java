@@ -1,4 +1,4 @@
-package com.example.application.views.shootingdetails;
+package com.example.application.views.basketball;
 
 import com.example.application.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -14,8 +14,8 @@ import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
-@Route(value = "shootingdetails", layout = MainLayout.class) // Annahme: MainLayout ist dein Master-Detail Layout
-public class ShootingDetails extends VerticalLayout {
+@Route(value = "basketball", layout = MainLayout.class)
+public class BasketballView extends VerticalLayout {
 
 	@Serial
 	private static final long serialVersionUID = 3878656755224826959L;
@@ -25,12 +25,11 @@ public class ShootingDetails extends VerticalLayout {
 	private final Button confirmButton = new Button("Speichern");
 	private final Chart chart = new Chart(ChartType.LINE);
 
-	// Datenhaltung für grafische Darstellung
-	private final List<Double> times = new ArrayList<>();
-	private final List<Double> shots = new ArrayList<>();
-	private final List<Double> hits = new ArrayList<>();
+    private final List<Double> times = new ArrayList<>();
+    private final List<Double> shots = new ArrayList<>();
+    private final List<Double> hits = new ArrayList<>();
 
-	public  ShootingDetails() {
+	public BasketballView() {
 		timeField.setStep(1);
 		timeField.setMin(0);
 
@@ -40,11 +39,11 @@ public class ShootingDetails extends VerticalLayout {
 		hitsField.setStep(1);
 		hitsField.setMin(0);
 
-		confirmButton.addClickListener(e -> saveData());
+        confirmButton.addClickListener(e -> saveData());
 
-		add(timeField, shotsField, hitsField, confirmButton, chart);
-		setupChart();
-	}
+        add(timeField, shotsField, hitsField, confirmButton, chart);
+        setupChart();
+    }
 
 	private void saveData() {
 		// Werte validieren
@@ -60,23 +59,23 @@ public class ShootingDetails extends VerticalLayout {
 		updateChart();
 	}
 
-	private void setupChart() {
-		Configuration conf = chart.getConfiguration();
-		conf.setTitle("Basketball Statistik");
-		conf.getxAxis().setTitle("V ersuch Nummer");
-		conf.getyAxis().setTitle("Wert");
-		conf.addSeries(new ListSeries("Zeit (Sek)", (Number) times));
-		conf.addSeries(new ListSeries("Schüsse", (Number) shots));
-		conf.addSeries(new ListSeries("Getroffene Schüsse", (Number) hits));
-	}
+    private void setupChart() {
+        Configuration conf = chart.getConfiguration();
+        conf.setTitle("Basketball Statistik");
+        conf.getxAxis().setTitle("Versuch Nummer");
+        conf.getyAxis().setTitle("Wert");
+        conf.addSeries(new ListSeries("Zeit (Sek)", times.toArray(new Number[0])));
+        conf.addSeries(new ListSeries("Schüsse", shots.toArray(new Number[0])));
+        conf.addSeries(new ListSeries("Getroffene Schüsse", hits.toArray(new Number[0])));
+    }
 
-	private void updateChart() {
-		Configuration conf = chart.getConfiguration();
-		conf.setSeries(
-				new ListSeries("Zeit (Sek)", (Number) times),
-				new ListSeries("Schüsse", (Number) shots),
-				new ListSeries("Getroffene Schüsse", (Number) hits)
-		);
-		chart.setConfiguration(conf);
-	}
+    private void updateChart() {
+        Configuration conf = chart.getConfiguration();
+        conf.setSeries(
+                new ListSeries("Zeit (Sek)", times.toArray(new Number[0])),
+                new ListSeries("Schüsse", shots.toArray(new Number[0])),
+                new ListSeries("Getroffene Schüsse", hits.toArray(new Number[0]))
+        );
+        chart.setConfiguration(conf);
+    }
 }
