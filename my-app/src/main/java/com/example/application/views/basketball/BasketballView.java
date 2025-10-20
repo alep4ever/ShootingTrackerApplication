@@ -91,7 +91,7 @@ public class BasketballView extends VerticalLayout {
         playerSelector.addValueChangeListener(event -> {
             currentPlayer = event.getValue();
             if (currentPlayer != null) {
-                currentPlayerLabel.setText("Gerad werden die Stats von " + currentPlayer.getFullName() + " angezeigt");
+                currentPlayerLabel.setText("Gerade werden die Stats von " + currentPlayer.getFullName() + " angezeigt");
 
                 // Initialize statistics storage for new players if needed
                 playerStatsMap.computeIfAbsent(currentPlayer.getId(), k -> new PlayerStats());

@@ -88,7 +88,7 @@ public class SkillView extends VerticalLayout {
 
     /**
      * Creates the admin section where new skills can be added to the library.
-     * Clean, minimal interface without explanatory text.
+     * Clean, minimal interface with optional video upload and skill editing.
      */
     private void createAdminSection() {
         adminSection.addClassName("admin-section");
@@ -98,28 +98,29 @@ public class SkillView extends VerticalLayout {
                 .set("border-radius", "8px")
                 .set("margin-bottom", "20px");
 
-        // Skill creation form - clean and focused
+        // SKILL CREATION FORM
         HorizontalLayout skillForm = new HorizontalLayout();
+
         TextField skillName = new TextField("Skill Name");
-        skillName.setPlaceholder("z.B. Crossover");
+        skillName.setPlaceholder("e.g., Crossover Dribble");
         skillName.setWidth("200px");
 
-        TextArea skillDescription = new TextArea("Beschreibung");
-        skillDescription.setPlaceholder("");
+        TextArea skillDescription = new TextArea("Description");
+        skillDescription.setPlaceholder("Brief description of the skill");
         skillDescription.setWidth("300px");
         skillDescription.setHeight("100px");
 
-        // File upload for video demonstration
-        MemoryBuffer buffer = new MemoryBuffer();
-        Upload videoUpload = new Upload(buffer);
+        // File upload for optional video demonstration
+        MemoryBuffer videoBuffer = new MemoryBuffer();
+        Upload videoUpload = new Upload(videoBuffer);
         videoUpload.setAcceptedFileTypes("video/mp4", ".mp4");
         videoUpload.setMaxFiles(1);
         videoUpload.setMaxFileSize(50 * 1024 * 1024); // 50MB max
+        videoUpload.setWidth("200px");
 
-        Button saveSkillBtn = new Button("Skill hinzufügen");
-        saveSkillBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        // Track uploaded video filename
+        final String[] uploadedFileName = {null};
 
-        // Handle video upload and skill creation
         videoUpload.addSucceededListener(event -> {
             try {
                 // Create videos directory if it doesn't exist
@@ -132,36 +133,231 @@ public class SkillView extends VerticalLayout {
                 String fileName = event.getFileName();
                 Path filePath = videosDir.resolve(fileName);
 
-                try (InputStream inputStream = buffer.getInputStream();
+                try (InputStream inputStream = videoBuffer.getInputStream();
                      FileOutputStream outputStream = new FileOutputStream(filePath.toFile())) {
                     inputStream.transferTo(outputStream);
                 }
 
-                // Create and save the skill to the library
-                Skill skill = new Skill();
-                skill.setName(skillName.getValue());
-                skill.setDescription(skillDescription.getValue());
-                skill.setVideoFileName(fileName);
-                skillService.save(skill);
-
-                Notification.show("Skill hinzugefügt")
-                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
-                // Clear form for next entry
-                skillName.clear();
-                skillDescription.clear();
+                uploadedFileName[0] = fileName;
+                Notification.show("Video uploaded successfully!");
 
             } catch (Exception e) {
-                Notification.show("Error beim speichern des Videos: " + e.getMessage())
+                Notification.show("Error uploading video: " + e.getMessage())
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
+        });
+
+        // Save button - works with or without video
+        Button saveSkillBtn = new Button("Add Skill");
+        saveSkillBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveSkillBtn.addClickListener(e -> {
+            if (skillName.isEmpty()) {
+                Notification.show("Please enter a skill name", 3000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            // Create and save the skill (video is optional)
+            Skill skill = new Skill();
+            skill.setName(skillName.getValue());
+            skill.setDescription(skillDescription.getValue());
+            skill.setVideoFileName(uploadedFileName[0]); // Can be null
+            skillService.save(skill);
+
+            Notification.show("Skill added successfully!")
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+
+            // Clear form for next entry
+            skillName.clear();
+            skillDescription.clear();
+            uploadedFileName[0] = null;
+
+            // Refresh skill list in edit section
+            refreshEditSection();
         });
 
         skillForm.add(skillName, skillDescription, videoUpload, saveSkillBtn);
         skillForm.setAlignItems(Alignment.END);
 
-        // Only add the form - no extra text or instructions
-        adminSection.add(skillForm);
+        // SKILL EDIT SECTION
+        VerticalLayout editSection = new VerticalLayout();
+        editSection.addClassName("edit-section");
+        editSection.getStyle()
+                .set("margin-top", "30px")
+                .set("padding", "15px")
+                .set("background-color", "#fff")
+                .set("border-radius", "8px")
+                .set("border", "1px solid #ddd");
+
+        Span editTitle = new Span("Edit Skills");
+        editTitle.getStyle()
+                .set("font-weight", "bold")
+                .set("font-size", "1.1em")
+                .set("margin-bottom", "10px")
+                .set("display", "block");
+
+        VerticalLayout skillListContainer = new VerticalLayout();
+        skillListContainer.setId("skill-list-container");
+        skillListContainer.setPadding(false);
+        skillListContainer.setSpacing(true);
+
+        editSection.add(editTitle, skillListContainer);
+
+        adminSection.add(skillForm, editSection);
+
+        // Initial load of skills for editing
+        refreshEditSection();
+    }
+
+    /**
+     * Refreshes the edit section with current skills from the database.
+     */
+    private void refreshEditSection() {
+        VerticalLayout container = (VerticalLayout) adminSection.getChildren()
+                .filter(component -> component.getId().orElse("").equals("skill-list-container"))
+                .findFirst()
+                .orElse(null);
+
+        if (container == null) {
+            return;
+        }
+
+        container.removeAll();
+
+        List<Skill> allSkills = skillService.findAll();
+
+        if (allSkills.isEmpty()) {
+            Paragraph noSkills = new Paragraph("No skills created yet");
+            noSkills.getStyle()
+                    .set("color", "#999")
+                    .set("font-style", "italic");
+            container.add(noSkills);
+            return;
+        }
+
+        for (Skill skill : allSkills) {
+            HorizontalLayout skillRow = new HorizontalLayout();
+            skillRow.setWidthFull();
+            skillRow.setAlignItems(Alignment.CENTER);
+            skillRow.getStyle()
+                    .set("padding", "10px")
+                    .set("background-color", "#f9f9f9")
+                    .set("border-radius", "4px")
+                    .set("margin-bottom", "5px");
+
+            Span skillNameSpan = new Span(skill.getName());
+            skillNameSpan.getStyle()
+                    .set("font-weight", "bold")
+                    .set("flex-grow", "1");
+
+            Button editBtn = new Button("Edit");
+            editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+            editBtn.addClickListener(e -> openEditSkillDialog(skill));
+
+            Button deleteBtn = new Button("Delete");
+            deleteBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
+            deleteBtn.addClickListener(e -> {
+                skillService.delete(skill.getId());
+                Notification.show("Skill deleted");
+                refreshEditSection();
+                refreshProfiles();
+            });
+
+            skillRow.add(skillNameSpan, editBtn, deleteBtn);
+            container.add(skillRow);
+        }
+    }
+
+    /**
+     * Opens a dialog to edit an existing skill.
+     */
+    private void openEditSkillDialog(Skill skill) {
+        Dialog editDialog = new Dialog();
+        editDialog.setHeaderTitle("Edit Skill");
+        editDialog.setWidth("600px");
+
+        VerticalLayout content = new VerticalLayout();
+        content.setPadding(true);
+
+        TextField nameField = new TextField("Skill Name");
+        nameField.setValue(skill.getName());
+        nameField.setWidthFull();
+
+        TextArea descField = new TextArea("Description");
+        descField.setValue(skill.getDescription() != null ? skill.getDescription() : "");
+        descField.setWidthFull();
+        descField.setHeight("100px");
+
+        // Show current video status
+        Span videoStatus = new Span();
+        if (skill.getVideoFileName() != null) {
+            videoStatus.setText("Current video: " + skill.getVideoFileName());
+            videoStatus.getStyle().set("color", "#2196F3");
+        } else {
+            videoStatus.setText("No video attached");
+            videoStatus.getStyle().set("color", "#999");
+        }
+
+        // Upload new video (optional)
+        MemoryBuffer editVideoBuffer = new MemoryBuffer();
+        Upload newVideoUpload = new Upload(editVideoBuffer);
+        newVideoUpload.setAcceptedFileTypes("video/mp4", ".mp4");
+        newVideoUpload.setMaxFiles(1);
+        newVideoUpload.setMaxFileSize(50 * 1024 * 1024);
+        newVideoUpload.setWidthFull();
+
+        final String[] newVideoFileName = {null};
+
+        newVideoUpload.addSucceededListener(event -> {
+            try {
+                Path videosDir = Paths.get("src/main/resources/static/videos");
+                if (!Files.exists(videosDir)) {
+                    Files.createDirectories(videosDir);
+                }
+
+                String fileName = event.getFileName();
+                Path filePath = videosDir.resolve(fileName);
+
+                try (InputStream inputStream = editVideoBuffer.getInputStream();
+                     FileOutputStream outputStream = new FileOutputStream(filePath.toFile())) {
+                    inputStream.transferTo(outputStream);
+                }
+
+                newVideoFileName[0] = fileName;
+                videoStatus.setText("New video uploaded: " + fileName);
+                videoStatus.getStyle().set("color", "#4CAF50");
+
+            } catch (Exception ex) {
+                Notification.show("Error uploading video: " + ex.getMessage())
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+
+        content.add(nameField, descField, videoStatus, newVideoUpload);
+
+        Button saveBtn = new Button("Save Changes", e -> {
+            skill.setName(nameField.getValue());
+            skill.setDescription(descField.getValue());
+
+            // Update video only if a new one was uploaded
+            if (newVideoFileName[0] != null) {
+                skill.setVideoFileName(newVideoFileName[0]);
+            }
+
+            skillService.save(skill);
+            Notification.show("Skill updated successfully!")
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            refreshEditSection();
+            refreshProfiles();
+            editDialog.close();
+        });
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button cancelBtn = new Button("Cancel", e -> editDialog.close());
+        cancelBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        editDialog.add(content);
+        editDialog.getFooter().add(cancelBtn, saveBtn);
+        editDialog.open();
     }
 
     /**
@@ -195,9 +391,12 @@ public class SkillView extends VerticalLayout {
                     .set("padding", "40px")
                     .set("color", "#666");
 
-            H3 emptyTitle = new H3("Noch keine Spieler-Profile");
-
-            emptyState.add(emptyTitle);
+            H3 emptyTitle = new H3("No Player Profiles Yet");
+            Paragraph emptyText = new Paragraph(
+                    "Go to Team Roster and add your first player. " +
+                            "Their training profile will automatically appear here!"
+            );
+            emptyState.add(emptyTitle, emptyText);
             profilesLayout.add(emptyState);
         } else {
             // Display each player's profile card
@@ -264,7 +463,7 @@ public class SkillView extends VerticalLayout {
                 .set("margin-top", "10px")
                 .set("min-height", "100px");
 
-        Span skillsLabel = new Span("Skills");
+        Span skillsLabel = new Span("Assigned Skills:");
         skillsLabel.getStyle()
                 .set("font-weight", "bold")
                 .set("color", "#333");
@@ -272,7 +471,7 @@ public class SkillView extends VerticalLayout {
 
         // Display each skill assigned to this player
         if (profile.getSkills().isEmpty()) {
-            Paragraph noSkills = new Paragraph("Noch keine Skills hinzugefügt");
+            Paragraph noSkills = new Paragraph("No skills assigned yet. Click 'Add Skill' below.");
             noSkills.getStyle()
                     .set("color", "#999")
                     .set("font-style", "italic")
@@ -285,7 +484,7 @@ public class SkillView extends VerticalLayout {
         }
 
         // Add skill button - opens dialog to choose from skill library
-        Button addSkillBtn = new Button("+ Skill hinzufügen");
+        Button addSkillBtn = new Button("+ Add Skill");
         addSkillBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
         addSkillBtn.addClickListener(e -> openSkillSelectionDialog(profile));
 
@@ -335,7 +534,7 @@ public class SkillView extends VerticalLayout {
         removeBtn.addClickListener(e -> {
             profileService.removeSkillFromProfile(profile.getId(), skill);
             refreshProfiles();
-            Notification.show("Skill wurde von " + profile.getName() + " entfernt");
+            Notification.show("Skill removed from " + profile.getName());
             e.getSource().getUI().ifPresent(ui -> ui.getPage().reload());
         });
 
@@ -351,7 +550,7 @@ public class SkillView extends VerticalLayout {
      */
     private void openSkillSelectionDialog(Profile profile) {
         Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Skills auswählen den du " + profile.getName() + " zuweisen willst");
+        dialog.setHeaderTitle("Select Skills to Assign to " + profile.getName());
         dialog.setWidth("600px");
 
         VerticalLayout content = new VerticalLayout();
@@ -391,17 +590,17 @@ public class SkillView extends VerticalLayout {
                 }
 
                 // Preview video button
-                Button previewBtn = new Button("Video Vorschau");
+                Button previewBtn = new Button("Preview Video");
                 previewBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
                 previewBtn.addClickListener(e -> showSkillVideoDialog(skill));
 
                 // Add to player button
-                Button addBtn = new Button("Zum Spieler hinzufügen");
+                Button addBtn = new Button("Assign to Player");
                 addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
                 addBtn.addClickListener(e -> {
                     profileService.addSkillToProfile(profile.getId(), skill);
                     refreshProfiles();
-                    Notification.show("Skill wurde " + profile.getName() + "hinzugefügt")
+                    Notification.show("Skill assigned to " + profile.getName() + "!")
                             .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                     dialog.close();
                 });
@@ -413,9 +612,9 @@ public class SkillView extends VerticalLayout {
 
         if (!hasAvailableSkills) {
             Paragraph noSkillsMsg = new Paragraph(
-                    "" +
-                            "Es wurden noch keine Skills erstellt" +
-                            ""
+                    "All available skills have been assigned to this player, " +
+                            "or no skills exist in the library yet. " +
+                            "Add new skills using the admin section above."
             );
             noSkillsMsg.getStyle()
                     .set("color", "#666")
@@ -474,7 +673,7 @@ public class SkillView extends VerticalLayout {
 
             content.add(videoContainer);
         } else {
-            Paragraph noVideo = new Paragraph("Es gibt noch keine Vorschau zu diesem Skill");
+            Paragraph noVideo = new Paragraph("No video demonstration available for this skill yet.");
             noVideo.getStyle()
                     .set("color", "#999")
                     .set("font-style", "italic")
@@ -498,9 +697,32 @@ public class SkillView extends VerticalLayout {
      * assigned to any player, and videos can be added later through the admin section.
      */
     private void initializeDefaultData() {
+        if (skillService.count() == 0) {
+            // Create default basketball skills (coaches can add videos later)
+            Skill crossover = new Skill();
+            crossover.setName("Crossover Dribble");
+            crossover.setDescription("Quick ball handling move to change direction and beat defenders");
+            skillService.save(crossover);
+
+            Skill shooting = new Skill();
+            shooting.setName("Jump Shot Technique");
+            shooting.setDescription("Proper form for mid-range and three-point shooting");
+            skillService.save(shooting);
+
+            Skill layup = new Skill();
+            layup.setName("Layup Fundamentals");
+            layup.setDescription("Basic layup technique with both hands, focusing on footwork and finish");
+            skillService.save(layup);
+
+            Skill defense = new Skill();
+            defense.setName("Defensive Stance");
+            defense.setDescription("Proper defensive positioning, footwork, and body control");
+            skillService.save(defense);
+
+            Notification.show("Default basketball skills created! Add videos through the admin section.");
         }
 
         // Note: We no longer create default profiles here
         // Profiles are now created automatically in Team Roster when players are added
-
+    }
 }
