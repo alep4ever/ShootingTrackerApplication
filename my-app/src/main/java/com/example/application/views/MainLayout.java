@@ -6,7 +6,7 @@ import com.vaadin.flow.component.html.Footer;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.SvgIcon;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.sidenav.SideNav;
@@ -19,7 +19,8 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import java.util.List;
 
 /**
- * The main view is a top-level placeholder for other views.
+ * Main layout for the Basketball Stat Tracker application.
+ * Provides the navigation drawer and header with basketball-themed icons.
  */
 @Layout
 @AnonymousAllowed
@@ -44,7 +45,8 @@ public class MainLayout extends AppLayout {
     }
 
     private void addDrawerContent() {
-        Span appName = new Span("My App");
+        // Updated application name to Basketball Stat Tracker
+        Span appName = new Span("Basketball Stat Tracker");
         appName.addClassNames(LumoUtility.FontWeight.SEMIBOLD, LumoUtility.FontSize.LARGE);
         Header header = new Header(appName);
 
@@ -58,20 +60,30 @@ public class MainLayout extends AppLayout {
 
         List<MenuEntry> menuEntries = MenuConfiguration.getMenuEntries();
         menuEntries.forEach(entry -> {
-            if (entry.icon() != null) {
-                nav.addItem(new SideNavItem(entry.title(), entry.path(), new SvgIcon(entry.icon())));
-                nav.addItem(new SideNavItem("Basketball", "basketball", new SvgIcon(entry.icon())));
-            } else {
-                nav.addItem(new SideNavItem(entry.title(), entry.path()));
-            }
+            // Assign basketball-themed icons based on the menu title
+            Icon icon = getIconForMenuItem(entry.title());
+            nav.addItem(new SideNavItem(entry.title(), entry.path(), icon));
         });
 
         return nav;
     }
 
+    /**
+     * Returns appropriate basketball-themed icons for each menu item.
+     * This creates a cohesive sports application feel throughout the UI.
+     */
+    private Icon getIconForMenuItem(String title) {
+        // Map menu items to appropriate basketball/sports themed icons
+        return switch (title.toLowerCase()) {
+            case "team roster", "home" -> VaadinIcon.USERS.create();
+            case "basketball", "stats" -> VaadinIcon.CHART_LINE.create();
+            case "skills" -> VaadinIcon.TROPHY.create();
+            default -> VaadinIcon.CIRCLE.create();
+        };
+    }
+
     private Footer createFooter() {
         Footer layout = new Footer();
-
         return layout;
     }
 
