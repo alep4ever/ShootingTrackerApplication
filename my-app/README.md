@@ -12,6 +12,72 @@ For more information on installing in various IDEs, see [how to import Vaadin pr
 
 If you install the Vaadin plugin for IntelliJ, you should instead launch the `Application` class using "Debug using HotswapAgent" to see updates in the Java code immediately reflected in the browser.
 
+## Tests ausführen (Modul 450, LB1)
+
+Alle Befehle im Ordner `my-app` ausführen. Falls `mvnw` nicht funktioniert, das globale `mvn` verwenden.
+
+### Unit-Tests (JUnit 5 + Mockito)
+
+```
+mvn test
+```
+
+Einzelne Testklassen:
+
+```
+mvn test -Dtest=SkillServiceTest,BasketballStatsServiceTest
+```
+
+Im Terminal steht pro Testklasse eine Zeile (ohne `-q` starten, sonst wird die Ausgabe unterdrückt):
+
+```
+Running com.example.application.services.SkillServiceTest
+Tests run: 14, Failures: 0, Errors: 0, Skipped: 0 -- in ...SkillServiceTest
+```
+
+Am Ende folgt die Gesamtzusammenfassung (`Tests run: ..., Failures: 0`) und `BUILD SUCCESS`.
+Die Einzelergebnisse stehen auch in `target/surefire-reports/`.
+
+| Testklasse | Getestete Unit | Art |
+|---|---|---|
+| `services/SkillServiceTest` | `SkillService` | Mocking (Repository gemockt) |
+| `services/BasketballStatsServiceTest` | `BasketballStatsService` | Mocking (Repository gemockt) |
+| `data/SamplePersonTest` | `SamplePerson`, `AbstractEntity` | Logik / Entität |
+| `data/SkillTest` | `Skill` | Entität |
+| `data/BasketballStatsTest` | `BasketballStats` | Entität |
+
+### Code Coverage (JaCoCo)
+
+Läuft automatisch bei `mvn test`. Report im Browser öffnen:
+
+```
+target/site/jacoco/index.html
+```
+
+### Mutation Testing (PIT)
+
+```
+mvn test-compile org.pitest:pitest-maven:mutationCoverage
+```
+
+Im Terminal erscheint am Ende die Statistik, z. B. `Generated 30 mutations Killed 30 (100%)`.
+Der HTML-Report mit allen Mutationen pro Klasse und Zeile (grün = getötet, rot = überlebt):
+
+```
+target/pit-reports/index.html
+```
+
+Getestete Klassen für PIT sind in der `pom.xml` unter `pitest-maven` (`targetClasses` / `targetTests`) festgelegt:
+`SamplePerson`, `AbstractEntity`, `SkillService`.
+
+### Tests in IntelliJ (GUI)
+
+- **Einzelne Klasse:** Testdatei öffnen und auf den grünen Pfeil neben `class ...Test` klicken, dann *Run*.
+- **Alle Tests:** Rechtsklick auf den Ordner `src/test/java`, dann *Run 'All Tests'*. Unten im Run-Fenster erscheint der Testbaum mit grünen und roten Häkchen pro Klasse und Methode.
+- **Mit Coverage:** Rechtsklick auf `src/test/java`, dann *Run 'All Tests' with Coverage*. Die Coverage wird farbig im Code und im Coverage-Fenster angezeigt.
+- **Über Maven:** Rechts im Reiter *Maven* unter `Lifecycle` auf `test` doppelklicken. PIT liegt unter `Plugins`, `pitest`, `pitest:mutationCoverage` (vorher einmal `test-compile` ausführen).
+- Für Mutation Testing gibt es in IntelliJ keine eingebaute GUI. Der Report wird im Browser geöffnet: Rechtsklick auf `target/pit-reports/index.html`, dann *Open in*, dann *Browser*.
+
 ## Deploying to Production
 
 The project is a standard Maven project. To create a production build, call 

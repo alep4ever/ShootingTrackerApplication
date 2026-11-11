@@ -139,6 +139,34 @@ class SamplePersonTest {
         }
 
         @Test
+        @DisplayName("hashCode(): mit ID entspricht er dem hashCode der ID")
+        void hashCodeMitId() {
+            SamplePerson a = personMitId(42L);
+
+            assertThat(a.hashCode()).isEqualTo(Long.valueOf(42L).hashCode());
+            assertThat(a.hashCode()).isEqualTo(42);
+        }
+
+        @Test
+        @DisplayName("hashCode(): ohne ID wirft keine Exception und ist stabil (Identität)")
+        void hashCodeOhneId() {
+            SamplePerson a = new SamplePerson();
+
+            assertThat(a.hashCode()).isEqualTo(System.identityHashCode(a));
+            assertThat(a.hashCode()).isEqualTo(a.hashCode());
+        }
+
+        @Test
+        @DisplayName("getVersion() liefert die vom JPA-Provider gesetzte Version")
+        void versionWirdGeliefert() throws Exception {
+            java.lang.reflect.Field feld = AbstractEntity.class.getDeclaredField("version");
+            feld.setAccessible(true);
+            feld.setInt(person, 7);
+
+            assertThat(person.getVersion()).isEqualTo(7);
+        }
+
+        @Test
         @DisplayName("equals(): zwei Personen mit gleicher ID sind gleich")
         void gleicheIdIstGleich() {
             SamplePerson a = personMitId(1L);
