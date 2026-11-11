@@ -1,0 +1,36 @@
+# Automatisierungsgrad Stufe 3:
+# Bei jedem Push und Pull Request laufen alle Unit-Tests automatisch auf GitHub.
+name: Unit Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: my-app
+
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+
+      - name: Java 21 installieren
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Alle Unit-Tests ausfuehren
+        run: mvn -B test
+
+      - name: Test-Report hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: my-app/target/surefire-reports/
